@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FABLET — AI Storytelling Without Screens</title>
+<!--
+  КАРТИНКИ: создай папку img/ рядом с этим файлом и положи:
+  - product.png   (рендер устройства)
+  - dmitry.jpg    (фото Дмитрия)
+  - timofey.jpg   (фото Тимофея)
+  - qr.png        (QR-код на бизнес-план)
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<style>
+@property --g-angle{syntax:'<angle>';initial-value:0deg;inherits:false}
+@property --g-color{syntax:'<color>';initial-value:#ff6b35;inherits:false}
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0f1f;--bg2:#0f1528;--bg3:#141c35;--orange:#ff6b35;--cyan:#00d2ff;--purple:#9d4edd;--text:#e8ecf4;--text2:#8b95ad;--text3:#5a6480}
+html{scroll-behavior:auto}
+body{background:var(--bg);color:var(--text);font-family:'Manrope',sans-serif;overflow-x:hidden;cursor:none}
+::selection{background:var(--orange);color:#000}
+
+/* CUSTOM CURSOR */
+#cursor{position:fixed;width:20px;height:20px;border:2px solid var(--orange);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:width .3s,height .3s,border-color .3s,background .3s;mix-blend-mode:difference}
+#cursor.hover{width:60px;height:60px;background:rgba(255,107,53,.15);border-color:var(--cyan)}
+#cursor-dot{position:fixed;width:5px;height:5px;background:var(--orange);border-radius:50%;pointer-events:none;z-index:10000;transform:translate(-50%,-50%)}
+
+/* CANVAS BG */
+#noise-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;opacity:.35;pointer-events:none}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:1.2rem 3rem;display:flex;justify-content:space-between;align-items:center;backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);background:rgba(10,15,31,.6);border-bottom:1px solid rgba(255,107,53,.08)}
+.logo{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.6rem;letter-spacing:4px;background:linear-gradient(135deg,var(--orange),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+nav ul{display:flex;gap:2rem;list-style:none}
+nav a{color:var(--text2);text-decoration:none;font-size:.8rem;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;transition:color .4s;position:relative}
+nav a::after{content:'';position:absolute;bottom:-4px;left:0;width:0;height:2px;background:var(--orange);transition:width .4s cubic-bezier(.77,0,.18,1)}
+nav a:hover{color:var(--orange)}nav a:hover::after{width:100%}
+
+/* SECTIONS */
+section{position:relative;z-index:1;min-height:100vh;padding:8rem 4rem 5rem;max-width:1300px;margin:0 auto}
+.section-tag{font-family:'Space Grotesk',monospace;font-size:.7rem;color:var(--cyan);letter-spacing:5px;text-transform:uppercase;margin-bottom:1.5rem;opacity:.7}
+h2{font-family:'Space Grotesk',sans-serif;font-size:clamp(2.2rem,5vw,3.8rem);font-weight:700;line-height:1.08;margin-bottom:1.8rem}
+h2 .gradient{background:linear-gradient(var(--g-angle),var(--g-color),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:gradShift 6s ease infinite}
+@keyframes gradShift{0%,100%{--g-angle:0deg;--g-color:#ff6b35}33%{--g-angle:120deg;--g-color:#9d4edd}66%{--g-angle:240deg;--g-color:#00d2ff}}
+h3{font-family:'Space Grotesk',sans-serif;font-size:1.15rem;font-weight:600;color:var(--cyan);margin-bottom:.4rem}
+p.desc{font-size:1.05rem;color:var(--text2);max-width:680px;line-height:1.85}
+
+/* HERO */
+#hero{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;min-height:100vh;position:relative}
+.hero-tag{display:inline-flex;align-items:center;gap:.6rem;padding:.5rem 1.4rem;border:1px solid rgba(0,210,255,.2);border-radius:50px;font-size:.72rem;color:var(--cyan);letter-spacing:2px;text-transform:uppercase;margin-bottom:2.5rem;backdrop-filter:blur(10px);background:rgba(0,210,255,.04)}
+.hero-tag .pulse{width:8px;height:8px;background:var(--cyan);border-radius:50%;animation:pulse 2s ease infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.5)}}
+#hero h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(3.5rem,9vw,7rem);font-weight:700;line-height:.95;letter-spacing:-3px;margin-bottom:1.8rem}
+#hero h1 .word{display:inline-block;opacity:0;transform:translateY(60px) rotateX(-15deg);perspective:600px}
+.hero-sub{font-size:1.3rem;color:var(--text2);max-width:550px;margin:0 auto 3rem;opacity:0}
+.hero-stats{display:flex;gap:4rem;margin-top:2rem;flex-wrap:wrap;justify-content:center}
+.stat{text-align:center;opacity:0;transform:translateY(30px)}
+.stat-val{font-family:'Space Grotesk',sans-serif;font-size:3rem;font-weight:700;line-height:1}
+.stat-val.red{color:#ff4444}.stat-val.gold{color:var(--orange)}.stat-val.blue{color:var(--cyan)}
+.stat-lbl{font-size:.78rem;color:var(--text2);max-width:160px;margin-top:.4rem;line-height:1.4}
+
+/* GLASS CARDS */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.8rem;margin-top:2.5rem}
+.glass{background:rgba(20,28,53,.6);backdrop-filter:blur(16px) saturate(150%);-webkit-backdrop-filter:blur(16px) saturate(150%);border:1px solid rgba(255,255,255,.05);border-radius:20px;padding:2.2rem;position:relative;overflow:hidden;transition:transform .5s cubic-bezier(.23,1,.32,1),border-color .4s}
+.glass:hover{transform:translateY(-6px) scale(1.01);border-color:rgba(255,107,53,.2)}
+.glass::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:conic-gradient(from var(--g-angle),transparent,rgba(255,107,53,.06),transparent,rgba(0,210,255,.06),transparent);animation:cardGlow 8s linear infinite}
+@keyframes cardGlow{to{--g-angle:360deg}}
+.glass .icon{width:48px;height:48px;margin-bottom:1.2rem;display:flex;align-items:center;justify-content:center;border-radius:14px;background:linear-gradient(135deg,rgba(255,107,53,.12),rgba(0,210,255,.08));color:var(--orange);font-size:1.4rem;font-weight:700}
+.glass h3{color:var(--text);font-size:1.1rem}
+.glass p{color:var(--text2);font-size:.9rem;line-height:1.7}
+
+/* COMPARISON TABLE */
+.tbl-wrap{overflow-x:auto;margin-top:2rem;border-radius:16px;border:1px solid rgba(255,255,255,.05)}
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+th{background:rgba(20,28,53,.8);color:var(--cyan);padding:1rem;text-align:left;font-weight:600;font-family:'Space Grotesk',sans-serif;letter-spacing:.5px;border-bottom:2px solid rgba(0,210,255,.2)}
+td{padding:.8rem 1rem;border-bottom:1px solid rgba(255,255,255,.04);color:var(--text2)}
+tr:last-child{background:rgba(255,107,53,.06)}tr:last-child td{color:var(--text);font-weight:600;border-bottom:none}
+.ck{color:#22c55e;font-weight:700}.cx{color:#ef4444;opacity:.5}
+
+/* METRICS */
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1.5rem;margin-top:2rem}
+.metric{text-align:center;padding:1.8rem;border-radius:16px;background:linear-gradient(135deg,rgba(20,28,53,.7),rgba(15,21,40,.9));border:1px solid rgba(255,255,255,.04);position:relative;overflow:hidden}
+.metric::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--orange),var(--cyan))}
+.metric .val{font-family:'Space Grotesk',sans-serif;font-size:2rem;font-weight:700}
+.metric .lbl{font-size:.72rem;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin-top:.3rem}
+
+/* TEAM */
+.team-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:2.5rem;margin-top:2.5rem}
+.team-card{text-align:center;padding:2.5rem}
+.avatar{width:140px;height:140px;border-radius:50%;margin:0 auto 1.5rem;position:relative;overflow:hidden;border:3px solid transparent;background:linear-gradient(var(--bg),var(--bg)) padding-box,linear-gradient(135deg,var(--orange),var(--cyan)) border-box}
+.avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.avatar .ph{display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:var(--bg3);color:var(--text3);font-size:.7rem;border-radius:50%}
+.team-name{font-family:'Space Grotesk',sans-serif;font-size:1.25rem;font-weight:700}
+.team-role{color:var(--cyan);font-size:.85rem;margin:.2rem 0 .8rem}
+.team-bio{color:var(--text2);font-size:.82rem;line-height:1.6}
+.team-email{font-family:'Space Grotesk',monospace;color:var(--orange);font-size:.75rem;margin-top:.6rem}
+
+/* ROADMAP */
+.timeline{position:relative;margin-top:2.5rem;padding-left:3rem}
+.timeline::before{content:'';position:absolute;left:13px;top:0;bottom:0;width:2px;background:linear-gradient(180deg,var(--orange),var(--purple),var(--cyan),transparent)}
+.tm-item{position:relative;margin-bottom:2.5rem;padding-left:2.5rem;opacity:0;transform:translateX(-30px)}
+.tm-item::before{content:'';position:absolute;left:-3rem;top:8px;width:16px;height:16px;border-radius:50%;border:3px solid var(--bg);box-shadow:0 0 20px rgba(255,107,53,.3)}
+.tm-item:nth-child(1)::before{background:var(--orange)}
+.tm-item:nth-child(2)::before{background:var(--cyan)}
+.tm-item:nth-child(3)::before{background:var(--purple)}
+.tm-item:nth-child(4)::before{background:#22c55e}
+.tm-period{font-family:'Space Grotesk',monospace;font-size:.78rem;color:var(--cyan);margin-bottom:.3rem;letter-spacing:1px}
+.tm-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1.1rem;margin-bottom:.4rem}
+.tm-desc{color:var(--text2);font-size:.88rem;line-height:1.7}
+
+/* ASK GRID */
+.ask-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;margin-top:2rem}
+.ask-item{padding:1.8rem;border-radius:16px;background:rgba(20,28,53,.5);border-left:3px solid var(--orange);backdrop-filter:blur(10px)}
+.ask-item h4{color:var(--orange);font-size:.95rem;margin-bottom:.5rem;font-family:'Space Grotesk',sans-serif}
+.ask-item p{color:var(--text2);font-size:.85rem;line-height:1.6}
+
+/* QR */
+.qr-section{text-align:center;margin-top:3rem;padding:3rem;border-radius:24px;background:rgba(20,28,53,.5);border:1px solid rgba(255,107,53,.1);backdrop-filter:blur(16px)}
+.qr-box{width:180px;height:180px;margin:1.5rem auto;border-radius:16px;border:2px dashed rgba(255,107,53,.3);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;background:var(--bg3)}
+.qr-box img{width:100%;height:100%;object-fit:contain;padding:10px;position:absolute;top:0;left:0}
+
+/* IMG PLACEHOLDER */
+.img-holder{background:var(--bg3);border:2px dashed rgba(0,210,255,.15);border-radius:20px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:.78rem;text-align:center;padding:2rem;min-height:360px;position:relative;overflow:hidden}
+.img-holder img{width:100%;height:100%;object-fit:cover;border-radius:18px;position:absolute;top:0;left:0}
+
+/* FOOTER */
+footer{text-align:center;padding:4rem 2rem;color:var(--text3);font-size:.8rem;border-top:1px solid rgba(255,255,255,.04);position:relative;z-index:1}
+
+/* CLIP PATH REVEAL */
+.clip-reveal{clip-path:polygon(0 0,100% 0,100% 0,0 0);transition:clip-path 1s cubic-bezier(.77,0,.18,1)}
+.clip-reveal.visible{clip-path:polygon(0 0,100% 0,100% 100%,0 100%)}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  section{padding:5rem 1.5rem 3rem}nav{padding:.8rem 1.5rem}nav ul{display:none}
+  .hero-stats{gap:2rem}.stat-val{font-size:2rem}
+  #hero h1{font-size:clamp(2.5rem,10vw,4rem);letter-spacing:-1px}
+  .cards{grid-template-columns:1fr}.two-col{grid-template-columns:1fr!important}
+  body{cursor:auto}#cursor,#cursor-dot{display:none}
+}
+</style>
+</head>
+<body>
+
+<canvas id="noise-canvas"></canvas>
+<div id="cursor"></div>
+<div id="cursor-dot"></div>
+
+<nav>
+  <div class="logo">FABLET</div>
+  <ul>
+    <li><a href="#problem" class="mag">Проблема</a></li>
+    <li><a href="#solution" class="mag">Решение</a></li>
+    <li><a href="#economy" class="mag">Экономика</a></li>
+    <li><a href="#team" class="mag">Команда</a></li>
+    <li><a href="#ask" class="mag">Цель</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-tag"><span class="pulse"></span> ITMO Accelerator · Весна 2026</div>
+  <h1 id="hero-title"><span class="word">Истории,</span> <span class="word">которые</span> <span class="word">рождаются</span> <span class="word">из</span> <span class="word gradient">фигурки</span></h1>
+  <p class="hero-sub">Умная коробочка с NFC-фигурками. AI генерирует уникальные аудио-истории для детей. Без экрана. Без участия родителя.</p>
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-val red">3.5 ч</div><div class="stat-lbl">столько дети 3–8 лет проводят перед экраном ежедневно</div></div>
+    <div class="stat"><div class="stat-val gold">1 ч</div><div class="stat-lbl">рекомендация ВОЗ по экранному времени для этого возраста</div></div>
+    <div class="stat"><div class="stat-val blue">40%</div><div class="stat-lbl">родителей хотят снизить экранное время, но не знают чем заменить</div></div>
+  </div>
+</section>
+
+<!-- PROBLEM -->
+<section id="problem">
+  <div class="section-tag">// Проблема</div>
+  <h2 class="clip-reveal">Ребёнок требует внимания <span class="gradient">каждые 5 минут</span></h2>
+  <p class="desc clip-reveal">Родитель либо работает, либо включает экран. Все существующие безэкранные решения не дают автономности:</p>
+  <div class="cards">
+    <div class="glass"><div class="icon">01</div><h3>Книги</h3><p>Требуют чтения вслух. Родитель привязан к ребёнку и не может заниматься своими делами.</p></div>
+    <div class="glass"><div class="icon">02</div><h3>Аудиосказки</h3><p>Статичный контент. Ребёнок привыкает к одним и тем же историям за 3 дня и снова требует экран.</p></div>
+    <div class="glass"><div class="icon">03</div><h3>Обычные игрушки</h3><p>Удерживают внимание 10–15 минут без взрослого. Потом снова скучно — снова экран.</p></div>
+  </div>
+</section>
+
+<!-- SOLUTION -->
+<section id="solution">
+  <div class="section-tag">// Решение</div>
+  <h2 class="clip-reveal">Фигурка на коробочку — <span class="gradient">история начинается</span></h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:3rem;margin-top:2rem;align-items:center" class="two-col">
+    <div class="img-holder"><span>product.png — рендер устройства</span><img src="img/product.png" alt="Fablet" onerror="this.style.display='none'"></div>
+    <div>
+      <div style="margin-bottom:1.8rem"><h3>01 · NFC-распознавание</h3><p style="color:var(--text2);font-size:.92rem">Ребёнок ставит фигурку — персонаж распознаётся за 0.3 секунды</p></div>
+      <div style="margin-bottom:1.8rem"><h3>02 · AI-генерация</h3><p style="color:var(--text2);font-size:.92rem">Нейросеть создаёт уникальную историю, адаптированную под возраст</p></div>
+      <div style="margin-bottom:1.8rem"><h3>03 · Живой голос</h3><p style="color:var(--text2);font-size:.92rem">Синтез речи студийного качества, несколько голосов на выбор</p></div>
+      <div style="margin-bottom:1.8rem"><h3>04 · Безопасность</h3><p style="color:var(--text2);font-size:.92rem">3 уровня фильтрации контента. Родитель видит текст каждой истории</p></div>
+      <div><h3>05 · Офлайн</h3><p style="color:var(--text2);font-size:.92rem">10 историй сохраняются на устройстве и работают без интернета</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPETITORS -->
+<section id="competitors">
+  <div class="section-tag">// Конкуренты</div>
+  <h2 class="clip-reveal">На рынке РФ <span class="gradient">нет прямого аналога</span></h2>
+  <p class="desc clip-reveal">Мировой лидер Tonies (€630 млн выручки, 10 млн устройств) не работает в России с 2022 года.</p>
+  <div class="tbl-wrap clip-reveal">
+    <table>
+      <tr><th>Продукт</th><th>AI</th><th>NFC</th><th>Blind Box</th><th>Офлайн</th><th>В России</th><th>Цена</th></tr>
+      <tr><td>Toniebox</td><td class="cx">нет</td><td class="ck">да</td><td class="cx">нет</td><td class="ck">да</td><td class="cx">санкции</td><td>€79+</td></tr>
+      <tr><td>Yoto Player</td><td class="cx">нет</td><td class="cx">карты</td><td class="cx">нет</td><td class="ck">да</td><td class="cx">нет</td><td>£99+</td></tr>
+      <tr><td>Яндекс Алиса</td><td>частично</td><td class="cx">нет</td><td class="cx">нет</td><td class="cx">нет</td><td class="ck">да</td><td>3–18 тыс.</td></tr>
+      <tr><td style="color:var(--orange);font-weight:700">FABLET</td><td class="ck">полный</td><td class="ck">да</td><td class="ck">да</td><td class="ck">да</td><td class="ck">да</td><td style="color:var(--orange)">6 990 ₽</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- BUSINESS MODEL -->
+<section id="economy">
+  <div class="section-tag">// Бизнес-модель</div>
+  <h2 class="clip-reveal">Три потока <span class="gradient">выручки</span></h2>
+  <div class="cards">
+    <div class="glass"><div class="icon" style="background:linear-gradient(135deg,rgba(255,107,53,.15),rgba(255,107,53,.05))">S</div><h3>Starter Kit · 6 990 ₽</h3><p>Устройство + 3 фигурки + 1 месяц подписки. Себестоимость ~4 000 ₽. <strong style="color:#22c55e">Маржа 43%</strong></p></div>
+    <div class="glass"><div class="icon" style="background:linear-gradient(135deg,rgba(0,210,255,.15),rgba(0,210,255,.05));color:var(--cyan)">R</div><h3>Подписка · 399 ₽/мес</h3><p>Безлимитный AI-контент + родительское приложение. Расход API ~45 ₽/мес. <strong style="color:#22c55e">Маржа 89%</strong></p></div>
+    <div class="glass"><div class="icon" style="background:linear-gradient(135deg,rgba(157,78,221,.15),rgba(157,78,221,.05));color:var(--purple)">F</div><h3>Коллекционные фигурки</h3><p>Blind box 690 ₽ (сюрприз) · Именная 1 290 ₽. Серии каждые 6–8 недель. <strong style="color:#22c55e">Маржа 82–88%</strong></p></div>
+  </div>
+  <div class="metrics" style="margin-top:2.5rem">
+    <div class="metric"><div class="val" style="color:var(--text)">~4 000 ₽</div><div class="lbl">COGS Starter Kit</div></div>
+    <div class="metric"><div class="val" style="color:#22c55e">~7 700 ₽</div><div class="lbl">LTV (12 мес.)</div></div>
+    <div class="metric"><div class="val" style="color:var(--cyan)">~350 ₽</div><div class="lbl">CAC</div></div>
+    <div class="metric"><div class="val" style="color:var(--orange)">22x</div><div class="lbl">LTV / CAC</div></div>
+    <div class="metric"><div class="val" style="color:#22c55e">&lt;1 мес</div><div class="lbl">Payback</div></div>
+  </div>
+</section>
+
+<!-- AUDIENCE -->
+<section id="audience">
+  <div class="section-tag">// Целевая аудитория</div>
+  <h2 class="clip-reveal">Городские семьи, <span class="gradient">доход 55–200 тыс. ₽</span></h2>
+  <p class="desc clip-reveal" style="margin-bottom:1.5rem">Дети 3–8 лет. Таких семей в России ~1–1,5 млн. Они осознают проблему экранного времени и активно ищут качественную альтернативу.</p>
+  <div class="metrics">
+    <div class="metric"><div class="val" style="color:var(--text)">250 млрд</div><div class="lbl">TAM · рынок игрушек РФ</div></div>
+    <div class="metric"><div class="val" style="color:var(--cyan)">~12 млрд</div><div class="lbl">SAM · умные / интерактивные</div></div>
+    <div class="metric"><div class="val" style="color:var(--orange)">~5.2 млн</div><div class="lbl">SOM · год 1 (640 Kit)</div></div>
+  </div>
+</section>
+
+<!-- TEAM -->
+<section id="team">
+  <div class="section-tag">// Команда</div>
+  <h2 class="clip-reveal">Два человека — <span class="gradient">все компетенции</span></h2>
+  <div class="team-grid">
+    <div class="glass team-card">
+      <div class="avatar"><img src="img/dmitry.jpg" alt="Дмитрий" onerror="this.style.display='none'"><span class="ph">dmitry.jpg</span></div>
+      <div class="team-name">Дмитрий Неводничий</div>
+      <div class="team-role">CEO / Business Development</div>
+      <div class="team-bio">ИТМО, Бизнес-информатика (2023–2027)<br>Победитель МЕГАОЛИМПИАДЫ ИТМО, Универсиады RUDN ON<br>Призёр ИТМО x Контур SBAS 2025<br>Стажировка СКБ Контур — CustDev, юнит-экономика</div>
+      <div class="team-email">nevodnichiy.business@gmail.com</div>
+    </div>
+    <div class="glass team-card">
+      <div class="avatar"><img src="img/timofey.jpg" alt="Тимофей" onerror="this.style.display='none'"><span class="ph">timofey.jpg</span></div>
+      <div class="team-name">Тимофей Лабор</div>
+      <div class="team-role">CTO / Hardware & AI Engineer</div>
+      <div class="team-bio">ИТМО, Программная инженерия (2023–2027)<br>C, Kotlin/Spring, PHP Laravel, Python/PyTorch<br>Linux kernel, UEFI, Orange Pi, NFC, I2S<br>PHP-разработчик, ООО «Союз 317»</div>
+      <div class="team-email">timofeylabor@gmail.com</div>
+    </div>
+  </div>
+</section>
+
+<!-- ROADMAP -->
+<section id="roadmap">
+  <div class="section-tag">// Дорожная карта</div>
+  <h2 class="clip-reveal"><span class="gradient">План первых продаж</span></h2>
+  <div class="timeline">
+    <div class="tm-item">
+      <div class="tm-period">Мес. 1–2 · R&D + Приложение</div>
+      <div class="tm-title">30 прототипов, тест с 10 семьями</div>
+      <div class="tm-desc">Сборка в FabLab ИТМО. AI-пайплайн: GigaChat + фильтрация + TTS. Параллельно: разработка MVP мобильного приложения (Flutter) — логин, коллекция фигурок, лог историй.</div>
+    </div>
+    <div class="tm-item">
+      <div class="tm-period">Мес. 3–4 · Первые продажи + Релиз приложения</div>
+      <div class="tm-title">20 продаж через Telegram-чаты, запуск TikTok/Reels</div>
+      <div class="tm-desc">3 микро-блогера (бартер). Видео снимаем в студии ИТМО. Релиз MVP приложения в App Store / Google Play.</div>
+    </div>
+    <div class="tm-item">
+      <div class="tm-period">Мес. 5–8 · Масштабирование</div>
+      <div class="tm-title">Первая серия blind box, 250 устройств</div>
+      <div class="tm-desc">Переход на vacuum casting для мелкосерийного производства фигурок. 5 персонажей в серии. Цель: 200+ активных подписчиков.</div>
+    </div>
+    <div class="tm-item">
+      <div class="tm-period">Мес. 9–12 · Рост</div>
+      <div class="tm-title">Регулярные серии фигурок, наращивание базы</div>
+      <div class="tm-desc">Новые серии каждые 6–8 недель. UGC-контент и коллаборации. Оптимизация юнит-экономики. Подготовка к привлечению инвестиций.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ASK -->
+<section id="ask">
+  <div class="section-tag">// Цель на Акселератор</div>
+  <h2 class="clip-reveal">Что нам нужно <span class="gradient">от ITMO</span></h2>
+  <p class="desc clip-reveal" style="margin-bottom:1.5rem">Мы не просим денег. Мы просим инфраструктуру, экспертизу и связи.</p>
+  <div class="ask-grid">
+    <div class="ask-item"><h4>Оборудование FabLab</h4><p>3D-принтеры, лазеры, CNC — прототипы устройства и фигурок бесплатно</p></div>
+    <div class="ask-item"><h4>Медиа и съёмка</h4><p>Видеостудия для промо, звукозаписывающая будка для голоса нейронки и SFX</p></div>
+    <div class="ask-item"><h4>Менторство</h4><p>Hardware, child tech, сертификация. Еженедельные встречи 3 месяца</p></div>
+    <div class="ask-item"><h4>Связи с инвесторами</h4><p>25+ корпоративных партнёров, 20+ венчурных фондов, Demo Day</p></div>
+    <div class="ask-item"><h4>PR и медиа ИТМО</h4><p>ИТМО.NEWS, YouTube (20K+ подп.), Telegram — рассказать 100K+ аудитории</p></div>
+    <div class="ask-item"><h4>Рабочее пространство (ИТМО Хайпарк)</h4><p>Помещение на территории ИТМО Хайпарк для команды на 6–12 месяцев. Для сборки, тестирования, хранения прототипов и работы над устройством.</p></div>
+  </div>
+
+  <div class="qr-section clip-reveal">
+    <h3 style="color:var(--orange);font-size:1.4rem;font-family:'Space Grotesk',sans-serif;margin-bottom:.5rem">Полный бизнес-план</h3>
+    <p style="color:var(--text2)">Экономика, производство, риски, стратегия — детальный документ</p>
+    <div class="qr-box"><img src="img/qr.png" alt="QR" onerror="this.style.display='none'"><span style="color:var(--text3);font-size:.72rem">qr.png</span></div>
+    <p style="color:var(--text3);font-size:.72rem;margin-top:.5rem">Сканируйте для доступа к детальному плану</p>
+  </div>
+</section>
+
+<footer>
+  <p style="margin-bottom:.4rem;font-size:1.1rem;color:var(--text);font-family:'Space Grotesk',sans-serif;font-weight:700;letter-spacing:2px">FABLET</p>
+  <p>nevodnichiy.business@gmail.com · timofeylabor@gmail.com</p>
+  <p style="margin-top:.4rem">ИТМО · Санкт-Петербург · 2026</p>
+</footer>
+
+<script>
+// ========== PERLIN NOISE CANVAS ==========
+const canvas=document.getElementById('noise-canvas'),ctx=canvas.getContext('2d');
+function resizeCanvas(){canvas.width=window.innerWidth/3;canvas.height=window.innerHeight/3}
+resizeCanvas();window.addEventListener('resize',resizeCanvas);
+const perm=new Uint8Array(512);for(let i=0;i<256;i++)perm[i]=i;
+for(let i=255;i>0;i--){const j=Math.floor(Math.random()*(i+1));[perm[i],perm[j]]=[perm[j],perm[i]]}
+for(let i=0;i<256;i++)perm[i+256]=perm[i];
+function fade(t){return t*t*t*(t*(t*6-15)+10)}
+function lerp(a,b,t){return a+t*(b-a)}
+function grad(h,x,y){const v=h&1?y:x;return h&2?-v:v}
+function noise2d(x,y){const X=Math.floor(x)&255,Y=Math.floor(y)&255;x-=Math.floor(x);y-=Math.floor(y);const u=fade(x),v=fade(y);const A=perm[X]+Y,B=perm[X+1]+Y;return lerp(lerp(grad(perm[A],x,y),grad(perm[B],x-1,y),u),lerp(grad(perm[A+1],x,y-1),grad(perm[B+1],x-1,y-1),u),v)}
+let noiseT=0;
+function drawNoise(){const w=canvas.width,h=canvas.height,img=ctx.createImageData(w,h),d=img.data;noiseT+=.003;
+for(let y=0;y<h;y++)for(let x=0;x<w;x++){const v=(noise2d(x*.008+noiseT,y*.008+noiseT)*.5+.5)*30;const i=(y*w+x)*4;d[i]=v*.3;d[i+1]=v*.5;d[i+2]=v;d[i+3]=255}
+ctx.putImageData(img,0,0);requestAnimationFrame(drawNoise)}drawNoise();
+
+// ========== CURSOR ==========
+const cursor=document.getElementById('cursor'),dot=document.getElementById('cursor-dot');
+let mx=0,my=0,cx=0,cy=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;dot.style.left=mx+'px';dot.style.top=my+'px'});
+function animCursor(){cx+=(mx-cx)*.12;cy+=(my-cy)*.12;cursor.style.left=cx+'px';cursor.style.top=cy+'px';requestAnimationFrame(animCursor)}animCursor();
+document.querySelectorAll('a,.glass,.ask-item,.metric,.team-card').forEach(el=>{
+  el.addEventListener('mouseenter',()=>cursor.classList.add('hover'));
+  el.addEventListener('mouseleave',()=>cursor.classList.remove('hover'));
+});
+
+// ========== MAGNETIC CURSOR ==========
+document.querySelectorAll('.mag').forEach(el=>{
+  el.addEventListener('mousemove',e=>{
+    const r=el.getBoundingClientRect();
+    const dx=e.clientX-r.left-r.width/2;
+    const dy=e.clientY-r.top-r.height/2;
+    el.style.transform=`translate(${dx*.3}px,${dy*.3}px)`;
+  });
+  el.addEventListener('mouseleave',()=>{el.style.transform=''});
+});
+
+// ========== GSAP ANIMATIONS ==========
+gsap.registerPlugin(ScrollTrigger);
+
+// Hero words stagger
+gsap.to('#hero-title .word',{opacity:1,y:0,rotateX:0,stagger:.12,duration:.8,ease:'back.out(1.7)',delay:.5});
+gsap.to('.hero-sub',{opacity:1,y:0,duration:1,delay:1.2});
+gsap.to('.stat',{opacity:1,y:0,stagger:.2,duration:.7,delay:1.5,ease:'power3.out'});
+
+// Clip-path reveals
+document.querySelectorAll('.clip-reveal').forEach(el=>{
+  ScrollTrigger.create({trigger:el,start:'top 85%',onEnter:()=>el.classList.add('visible')});
+});
+
+// Glass cards stagger
+document.querySelectorAll('.cards').forEach(grid=>{
+  gsap.from(grid.querySelectorAll('.glass'),{scrollTrigger:{trigger:grid,start:'top 80%'},opacity:0,y:50,rotateY:8,stagger:.15,duration:.8,ease:'power3.out'});
+});
+
+// Metrics
+document.querySelectorAll('.metrics').forEach(grid=>{
+  gsap.from(grid.querySelectorAll('.metric'),{scrollTrigger:{trigger:grid,start:'top 80%'},opacity:0,scale:.9,stagger:.1,duration:.6,ease:'back.out(1.5)'});
+});
+
+// Timeline items
+gsap.utils.toArray('.tm-item').forEach((item,i)=>{
+  gsap.to(item,{scrollTrigger:{trigger:item,start:'top 85%'},opacity:1,x:0,duration:.7,delay:i*.1,ease:'power3.out'});
+});
+
+// Ask grid
+gsap.from('.ask-item',{scrollTrigger:{trigger:'.ask-grid',start:'top 80%'},opacity:0,y:30,stagger:.08,duration:.6,ease:'power3.out'});
+
+// Team cards
+gsap.from('.team-card',{scrollTrigger:{trigger:'.team-grid',start:'top 80%'},opacity:0,y:40,stagger:.2,duration:.8,ease:'power3.out'});
+
+// Nav shrink
+window.addEventListener('scroll',()=>{
+  const n=document.querySelector('nav');
+  n.style.padding=scrollY>80?'.7rem 3rem':'1.2rem 3rem';
+});
+
+// Parallax on sections
+gsap.utils.toArray('section').forEach(sec=>{
+  gsap.to(sec.querySelector('.section-tag'),{scrollTrigger:{trigger:sec,start:'top bottom',end:'bottom top',scrub:1},x:40,opacity:.4});
+});
+</script>
+</body>
+</html>
